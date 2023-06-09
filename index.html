@@ -3,138 +3,208 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Presentación de Archivo PowerPoint 0.4</title>
-  
-  <!-- Estilos de reveal.js -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.1.2/dist/reveal.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.1.2/dist/theme/white.min.css">
-  
-  <!-- Estilos adicionales -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css">
-  
-  <!-- SweetAlert2 -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.0/dist/sweetalert2.min.css">
-  
-  <style>
-    .reveal {
-      overflow: hidden;
-    }
-  </style>
+  <title>Editor de Fotos</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container">
+      <a class="navbar-brand" href="#">Editor de Fotos</a>
+    </div>
+  </nav>
 
-  <div class="reveal">
-    <div class="slides">
-      <!-- Contenido de la presentación -->
+  <div class="container mt-5">
+    <div class="row">
+      <div class="col-md-6">
+        <h3 class="mb-3">Seleccionar imagen</h3>
+        <input type="file" id="fileInput" class="form-control-file mb-3">
+
+        <h3 class="mb-3">Filtro de color</h3>
+        <input type="color" id="colorPicker" class="form-control form-control-color mb-3">
+      </div>
+      <div class="col-md-6">
+        <h3>Vista previa</h3>
+        <canvas id="canvas" class="img-thumbnail"></canvas>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-12 text-center">
+        <button id="applyFilterButton" class="btn btn-primary btn-lg">Aplicar filtro</button>
+      </div>
+    </div>
+
+    <div class="row mt-3">
+      <div class="col-md-12 text-center">
+        <a id="downloadLink" class="btn btn-success btn-lg" download="imagen_filtrada.png">Descargar imagen</a>
+      </div>
     </div>
   </div>
-  
-  <!-- Scripts de reveal.js -->
-  <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.1.2/dist/reveal.min.js"></script>
-  
-  <!-- Biblioteca PptxGenJS -->
-  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@4.2.0/dist/pptxgen.js"></script>
-  
-  <!-- SweetAlert2 -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.0/dist/sweetalert2.all.min.js"></script>
-  
-  <!-- Script personalizado -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.1.6/sweetalert2.all.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.js"></script>
+
   <script>
-    // Configuración de reveal.js
-    Reveal.initialize({
-      // Opciones de configuración
-    });
-    
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = '.ppt, .pptx';
-    fileInput.addEventListener('change', function() {
-      const file = fileInput.files[0];
-      
-      if (file) {
-        const reader = new FileReader();
-        
-        reader.addEventListener('load', function() {
-          const pptxData = reader.result;
-          const pptxSlides = extractSlidesFromPptx(pptxData);
-          
-          renderSlides(pptxSlides);
-        });
-        
-        reader.readAsArrayBuffer(file);
-      }
-    });
-    
-    function extractSlidesFromPptx(pptxData) {
-      const pptx = new PptxGenJS();
-      pptx.load(pptxData);
+    document.getElementById('fileInput').addEventListener('change', function(event) {
+      var file = event.target.files[0];
+      var reader = new FileReader();
 
-      const slides = pptx.slides.map(slide => {
-        const content = {
-          title: slide.title,
-          text: [],
-          images: [],
-          styles: {
-            backgroundColor: slide.background,
-            fontColor: slide.fontColor,
-            fontSize: slide.fontSize,
-            // Agrega otros estilos que desees extraer
-          }
+      reader.onload = function() {
+        var img = new Image();
+        img.onload = function() {
+          var canvas = document.getElementById('canvas');
+          var ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
         };
+        img.src = reader.result;
+      };
 
-        slide.eachShape(shape => {
-          if (shape.type === 'text') {
-            const textElement = {
-              text: shape.text,
-              style: {
-                color: shape.fontColor,
-                fontSize: shape.fontSize,
-                // Agrega otros estilos de texto que desees extraer
-              }
-            };
-            content.text.push(textElement);
-          } else if (shape.type === 'image') {
-            const imageElement = {
-              src: shape.image,
-              alt: shape.description,
-              // Agrega otros atributos de imagen que desees extraer
-            };
-            content.images.push(imageElement);
-          }
-        });
+      reader.readAsDataURL(file);
+    });
 
-        return { content };
-      });
+    document.getElementById('applyFilterButton').addEventListener('click', function() {
+      var canvas = document.getElementById('canvas');
+      var ctx = canvas.getContext('2d');
+      var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      var data = imageData.data;
 
-      return slides;
+      var color = document.getElementById('colorPicker').value;
+      var hueRotation = colorToHueRotation(color);
+
+      for (var i = 0; i < data.length; i += 4) {
+        var r = data[i];
+        var g = data[i + 1];
+        var b = data[i + 2];
+        var gray = (r + g + b) / 3;
+
+        if (color === '#ffffff' || color === '#000000') {
+          data[i] = gray;
+          data[i + 1] = gray;
+          data[i + 2] = gray;
+        } else {
+          var hsv = rgbToHsv(r, g, b);
+          hsv.h = hueRotation;
+          var rgb = hsvToRgb(hsv.h, hsv.s, hsv.v);
+
+          data[i] = rgb.r;
+          data[i + 1] = rgb.g;
+          data[i + 2] = rgb.b;
+        }
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+    });
+
+    function colorToHueRotation(color) {
+      var hex = color.replace('#', '');
+      var r = parseInt(hex.slice(0, 2), 16);
+      var g = parseInt(hex.slice(2, 4), 16);
+      var b = parseInt(hex.slice(4, 6), 16);
+      var max = Math.max(r, g, b);
+      var min = Math.min(r, g, b);
+      var c = max - min;
+
+      var hue;
+      if (c === 0) {
+        hue = 0;
+      } else if (max === r) {
+        hue = ((g - b) / c) % 6;
+      } else if (max === g) {
+        hue = (b - r) / c + 2;
+      } else {
+        hue = (r - g) / c + 4;
+      }
+      hue = Math.round(hue * 60);
+      return hue;
     }
-    
-    function renderSlides(slides) {
-      const slidesContainer = document.querySelector('.slides');
-      
-      slides.forEach(slide => {
-        const slideElement = document.createElement('section');
-        
-        // Agrega animación con animate.css
-        slideElement.classList.add('animate__animated', 'animate__fadeIn');
-        
-        slideElement.innerHTML = `
-          <h2>${slide.content.title}</h2>
-          
-          <div class="text">
-            ${slide.content.text.map(text => `<p>${text.text}</p>`).join('')}
-          </div>
-          
-          <div class="images">
-            ${slide.content.images.map(image => `<img src="${image.src}" alt="${image.alt}">`).join('')}
-          </div>
-        `;
-        
-        slidesContainer.appendChild(slideElement);
-      });
-      
-      Reveal.sync();
+
+    function rgbToHsv(r, g, b) {
+      r /= 255;
+      g /= 255;
+      b /= 255;
+
+      var max = Math.max(r, g, b);
+      var min = Math.min(r, g, b);
+      var c = max - min;
+
+      var hue;
+      if (c === 0) {
+        hue = 0;
+      } else if (max === r) {
+        hue = ((g - b) / c) % 6;
+      } else if (max === g) {
+        hue = (b - r) / c + 2;
+      } else {
+        hue = (r - g) / c + 4;
+      }
+      hue = Math.round(hue * 60);
+
+      var value = max;
+      var saturation = (max === 0) ? 0 : c / max;
+
+      return {
+        h: hue,
+        s: saturation,
+        v: value
+      };
     }
+
+    function hsvToRgb(h, s, v) {
+      var c = v * s;
+      var x = c * (1 - Math.abs((h / 60) % 2 - 1));
+      var m = v - c;
+
+      var r, g, b;
+      if (h < 60) {
+        r = c;
+        g = x;
+        b = 0;
+      } else if (h < 120) {
+        r = x;
+        g = c;
+        b = 0;
+      } else if (h < 180) {
+        r = 0;
+        g = c;
+        b = x;
+      } else if (h < 240) {
+        r = 0;
+        g = x;
+        b = c;
+      } else if (h < 300) {
+        r = x;
+        g = 0;
+        b = c;
+      } else {
+        r = c;
+        g = 0;
+        b = x;
+      }
+
+      r = Math.round((r + m) * 255);
+      g = Math.round((g + m) * 255);
+      b = Math.round((b + m) * 255);
+
+      return {
+        r: r,
+        g: g,
+        b: b
+      };
+    }
+
+    document.getElementById('downloadLink').addEventListener('click', function() {
+      var canvas = document.getElementById('canvas');
+      var link = document.getElementById('downloadLink');
+      link.href = canvas.toDataURL();
+    });
   </script>
 </body>
 </html>
