@@ -27,11 +27,14 @@
       </div>
       <div class="col-md-6">
         <h3>Vista previa</h3>
-        <canvas id="canvas" class="img-thumbnail"></canvas>
+        <div class="d-flex align-items-center justify-content-center">
+          <img id="originalImage" class="img-thumbnail" style="max-width: 200px; max-height: 200px;" src="" alt="Imagen Original">
+          <img id="editedImage" class="img-thumbnail ml-3" style="max-width: 200px; max-height: 200px;" src="" alt="Imagen Editada">
+        </div>
       </div>
     </div>
 
-    <div class="row">
+    <div class="row mt-3">
       <div class="col-md-12 text-center">
         <button id="applyFilterButton" class="btn btn-primary btn-lg">Aplicar filtro</button>
       </div>
@@ -39,7 +42,22 @@
 
     <div class="row mt-3">
       <div class="col-md-12 text-center">
-        <a id="downloadLink" class="btn btn-success btn-lg" download="imagen_filtrada.png">Descargar imagen</a>
+        <a id="viewFullSizeLink" class="btn btn-info btn-lg">Ver en tamaño normal</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal fade" id="fullSizeModal" tabindex="-1" aria-labelledby="fullSizeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="fullSizeModalLabel">Imagen Editada</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body text-center">
+          <img id="fullSizeImage" src="" alt="Imagen Editada" style="max-height: 600px;">
+        </div>
       </div>
     </div>
   </div>
@@ -57,12 +75,17 @@
       reader.onload = function() {
         var img = new Image();
         img.onload = function() {
-          var canvas = document.getElementById('canvas');
+          var canvas = document.createElement('canvas');
           var ctx = canvas.getContext('2d');
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
+          canvas.width = 200;
+          canvas.height = 200;
+          ctx.drawImage(img, 0, 0, 200, 200);
+
+          var originalImage = document.getElementById('originalImage');
+          originalImage.src = canvas.toDataURL();
+
+          var editedImage = document.getElementById('editedImage');
+          editedImage.src = canvas.toDataURL();
         };
         img.src = reader.result;
       };
@@ -70,37 +93,20 @@
       reader.readAsDataURL(file);
     });
 
+    document.getElementById('colorPicker').addEventListener('input', function() {
+      var color = this.value;
+      var image = document.getElementById('editedImage');
+
+      var filter = 'sepia(1) saturate(5) contrast(70%) hue-rotate(' + colorToHueRotation(color) + 'deg)';
+      image.style.filter = filter;
+    });
+
     document.getElementById('applyFilterButton').addEventListener('click', function() {
-      var canvas = document.getElementById('canvas');
-      var ctx = canvas.getContext('2d');
-      var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      var data = imageData.data;
-
       var color = document.getElementById('colorPicker').value;
-      var hueRotation = colorToHueRotation(color);
+      var image = document.getElementById('editedImage');
 
-      for (var i = 0; i < data.length; i += 4) {
-        var r = data[i];
-        var g = data[i + 1];
-        var b = data[i + 2];
-        var gray = (r + g + b) / 3;
-
-        if (color === '#ffffff' || color === '#000000') {
-          data[i] = gray;
-          data[i + 1] = gray;
-          data[i + 2] = gray;
-        } else {
-          var hsv = rgbToHsv(r, g, b);
-          hsv.h = hueRotation;
-          var rgb = hsvToRgb(hsv.h, hsv.s, hsv.v);
-
-          data[i] = rgb.r;
-          data[i + 1] = rgb.g;
-          data[i + 2] = rgb.b;
-        }
-      }
-
-      ctx.putImageData(imageData, 0, 0);
+      var filter = 'sepia(1) saturate(5) contrast(70%) hue-rotate(' + colorToHueRotation(color) + 'deg)';
+      image.style.filter = filter;
     });
 
     function colorToHueRotation(color) {
@@ -126,84 +132,16 @@
       return hue;
     }
 
-    function rgbToHsv(r, g, b) {
-      r /= 255;
-      g /= 255;
-      b /= 255;
+    document.getElementById('viewFullSizeLink').addEventListener('click', function() {
+      var editedImage = document.getElementById('editedImage');
+      var fullSizeImage = document.getElementById('fullSizeImage');
 
-      var max = Math.max(r, g, b);
-      var min = Math.min(r, g, b);
-      var c = max - min;
+      fullSizeImage.src = editedImage.src;
 
-      var hue;
-      if (c === 0) {
-        hue = 0;
-      } else if (max === r) {
-        hue = ((g - b) / c) % 6;
-      } else if (max === g) {
-        hue = (b - r) / c + 2;
-      } else {
-        hue = (r - g) / c + 4;
-      }
-      hue = Math.round(hue * 60);
-
-      var value = max;
-      var saturation = (max === 0) ? 0 : c / max;
-
-      return {
-        h: hue,
-        s: saturation,
-        v: value
-      };
-    }
-
-    function hsvToRgb(h, s, v) {
-      var c = v * s;
-      var x = c * (1 - Math.abs((h / 60) % 2 - 1));
-      var m = v - c;
-
-      var r, g, b;
-      if (h < 60) {
-        r = c;
-        g = x;
-        b = 0;
-      } else if (h < 120) {
-        r = x;
-        g = c;
-        b = 0;
-      } else if (h < 180) {
-        r = 0;
-        g = c;
-        b = x;
-      } else if (h < 240) {
-        r = 0;
-        g = x;
-        b = c;
-      } else if (h < 300) {
-        r = x;
-        g = 0;
-        b = c;
-      } else {
-        r = c;
-        g = 0;
-        b = x;
-      }
-
-      r = Math.round((r + m) * 255);
-      g = Math.round((g + m) * 255);
-      b = Math.round((b + m) * 255);
-
-      return {
-        r: r,
-        g: g,
-        b: b
-      };
-    }
-
-    document.getElementById('downloadLink').addEventListener('click', function() {
-      var canvas = document.getElementById('canvas');
-      var link = document.getElementById('downloadLink');
-      link.href = canvas.toDataURL();
+      var modal = new bootstrap.Modal(document.getElementById('fullSizeModal'), {
+        keyboard: false
+      });
+      modal.show();
     });
   </script>
 </body>
