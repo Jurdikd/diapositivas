@@ -10,6 +10,11 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.1.2/css/theme/white.min.css">
   
   <!-- Estilos adicionales -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  
+  <!-- SweetAlert2 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11">
+  
   <style>
     .reveal {
       overflow: hidden;
@@ -26,6 +31,12 @@
   
   <!-- Scripts de reveal.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.1.2/js/reveal.min.js"></script>
+  
+  <!-- Biblioteca PptxGenJS -->
+  <script src="https://unpkg.com/pptxgenjs"></script>
+  
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   
   <!-- Script personalizado -->
   <script>
@@ -55,8 +66,47 @@
     });
     
     function extractSlidesFromPptx(pptxData) {
-      // Lógica para extraer diapositivas del archivo de PowerPoint
-      // y devolverlas en un formato adecuado para reveal.js
+      const pptx = new PptxGenJS();
+      pptx.load(pptxData);
+
+      const slides = pptx.slides.map(slide => {
+        const content = {
+          title: slide.title,
+          text: [],
+          images: [],
+          styles: {
+            backgroundColor: slide.background,
+            fontColor: slide.fontColor,
+            fontSize: slide.fontSize,
+            // Agrega otros estilos que desees extraer
+          }
+        };
+
+        slide.eachShape(shape => {
+          if (shape.type === 'text') {
+            const textElement = {
+              text: shape.text,
+              style: {
+                color: shape.fontColor,
+                fontSize: shape.fontSize,
+                // Agrega otros estilos de texto que desees extraer
+              }
+            };
+            content.text.push(textElement);
+          } else if (shape.type === 'image') {
+            const imageElement = {
+              src: shape.image,
+              alt: shape.description,
+              // Agrega otros atributos de imagen que desees extraer
+            };
+            content.images.push(imageElement);
+          }
+        });
+
+        return { content };
+      });
+
+      return slides;
     }
     
     function renderSlides(slides) {
@@ -64,7 +114,22 @@
       
       slides.forEach(slide => {
         const slideElement = document.createElement('section');
-        slideElement.innerHTML = slide.content;
+        
+        // Agrega animación con animate.css
+        slideElement.classList.add('animate__animated', 'animate__fadeIn');
+        
+        slideElement.innerHTML = `
+          <h2>${slide.content.title}</h2>
+          
+          <div class="text">
+            ${slide.content.text.map(text => `<p>${text.text}</p>`).join('')}
+          </div>
+          
+          <div class="images">
+            ${slide.content.images.map(image => `<img src="${image.src}" alt="${image.alt}">`).join('')}
+          </div>
+        `;
+        
         slidesContainer.appendChild(slideElement);
       });
       
